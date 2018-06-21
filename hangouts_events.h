@@ -24,7 +24,7 @@
 #include "hangouts.pb-c.h"
 #include "gmail.pb-c.h"
 
-void hangouts_register_events(gpointer plugin);
+void hangouts_received_state_update(PurpleConnection *pc, StateUpdate *state_update);
 
 void hangouts_received_other_notification(PurpleConnection *pc, StateUpdate *state_update);
 void hangouts_received_event_notification(PurpleConnection *pc, StateUpdate *state_update);
@@ -34,7 +34,6 @@ void hangouts_received_watermark_notification(PurpleConnection *pc, StateUpdate 
 void hangouts_received_block_notification(PurpleConnection *pc, StateUpdate *state_update);
 void hangouts_received_view_modification(PurpleConnection *pc, StateUpdate *state_update);
 void hangouts_received_delete_notification(PurpleConnection *pc, StateUpdate *state_update);
-void hangouts_received_state_update(PurpleConnection *pc, StateUpdate *state_update);
 
 void hangouts_received_gmail_notification(PurpleConnection *pc, const gchar *username, GmailNotification *msg);
 

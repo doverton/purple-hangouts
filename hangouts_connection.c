@@ -34,6 +34,7 @@
 #include "hangouts_json.h"
 #include "hangouts.pb-c.h"
 #include "hangouts_conversation.h"
+#include "hangouts_events.h"
 
 #include "gmail.pb-c.h"
 
@@ -128,14 +129,14 @@ hangouts_process_data_chunks(HangoutsAccount *ha, const gchar *data, gsize len)
 					printf("----------------------\n");
 #endif
 					for(j = 0; j < batch_update.n_state_update; j++) {
-						purple_signal_emit(purple_connection_get_protocol(ha->pc), "hangouts-received-stateupdate", ha->pc, batch_update.state_update[j]);
+						hangouts_received_state_update(ha->pc, batch_update.state_update[j]);
 					}
 				} else if (purple_strequal(message_type, "n_nm")) {
 					GmailNotification gmail_notification = GMAIL_NOTIFICATION__INIT;
 					const gchar *username = json_object_get_string_member(json_object_get_object_member(json_object_get_object_member(wrapper, "2"), "1"), "2");
 					
 					pblite_decode((ProtobufCMessage *) &gmail_notification, pblite_message, TRUE);
-					purple_signal_emit(purple_connection_get_protocol(ha->pc), "hangouts-gmail-notification", ha->pc, username, &gmail_notification);
+					hangouts_received_gmail_notification(ha->pc, username, &gmail_notification);
 				}
 				
 				json_array_unref(pblite_message);
@@ -394,8 +395,6 @@ hangouts_longpoll_request(HangoutsAccount *ha)
 	ha->channel_watchdog = g_timeout_add_seconds(1, channel_watchdog_check, ha->pc);
 }
 
-
-
 static void
 hangouts_send_maps_cb(PurpleHttpConnection *http_conn, PurpleHttpResponse *response, gpointer user_data)
 {
@@ -427,14 +426,13 @@ hangouts_send_maps_cb(PurpleHttpConnection *http_conn, PurpleHttpResponse *respo
 	*json_start = '\0';
 	json_start++;
 	node = json_decode(json_start, atoi(res_raw));
-	sid = hangouts_json_path_query_string(node, "$[0][1][1]", NULL);
-	gsid = hangouts_json_path_query_string(node, "$[1][1][0].gsid", NULL);
 
-	if (sid != NULL) {
+	if ((sid = hangouts_json_extract_sid(node))) {
 		g_free(ha->sid_param);
 		ha->sid_param = sid;
 	}
-	if (gsid != NULL) {
+
+	if ((gsid = hangouts_json_extract_gsid(node))) {
 		g_free(ha->gsessionid_param);
 		ha->gsessionid_param = gsid;
 	}
@@ -857,9 +855,23 @@ hangouts_search_users_text_cb(PurpleHttpConnection *connection, PurpleHttpRespon
 	for(index = 0; index < length; index++)
 	{
 		JsonNode *result = json_array_get_element(resultsarray, index);
-		
+
+
+#if JSON_CHECK_VERSION(0, 14, 0)
 		gchar *id = hangouts_json_path_query_string(result, "$.person.personId", NULL);
 		gchar *displayname = hangouts_json_path_query_string(result, "$.person.name[*].displayName", NULL);
+#else
+		gchar *id = NULL;
+		gchar *displayname = NULL;
+
+		if (JSON_NODE_HOLDS_OBJECT(result)) {
+			JsonObject *object = json_node_get_object(result);
+			JsonNode *person = json_object_get_member(object, "person");
+
+			id = g_strdup(json_object_get_string_member(json_node_get_object(person), "personId"));
+			displayname = hangouts_json_person_extract_display_name(person);
+		}
+#endif
 		GList *row = NULL;
 		
 		row = g_list_append(row, id);

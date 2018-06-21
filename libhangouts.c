@@ -613,19 +613,6 @@ hangouts_protocol_init(PurpleProtocol *prpl_info)
 
 	prpl_info->options = OPT_PROTO_NO_PASSWORD | OPT_PROTO_CHAT_TOPIC | OPT_PROTO_MAIL_CHECK;
 	prpl_info->account_options = hangouts_add_account_options(prpl_info->account_options);
-	
-	purple_signal_register(plugin, "hangouts-received-stateupdate",
-			purple_marshal_VOID__POINTER_POINTER, G_TYPE_NONE, 2,
-			PURPLE_TYPE_CONNECTION,
-			G_TYPE_OBJECT);
-	
-	purple_signal_register(plugin, "hangouts-gmail-notification",
-			purple_marshal_VOID__POINTER_POINTER_POINTER, G_TYPE_NONE, 3,
-			PURPLE_TYPE_CONNECTION,
-			G_TYPE_STRING,
-			G_TYPE_OBJECT);
-
-	hangouts_register_events(plugin);
 }
 
 static void
@@ -833,7 +820,7 @@ init_plugin(PurplePlugin *plugin)
 {
 	PurplePluginInfo *info;
 	PurplePluginProtocolInfo *prpl_info = g_new0(PurplePluginProtocolInfo, 1);
-	
+
 	info = plugin->info;
 	if (info == NULL) {
 		plugin->info = info = g_new0(PurplePluginInfo, 1);
@@ -841,19 +828,6 @@ init_plugin(PurplePlugin *plugin)
 	
 	prpl_info->options = OPT_PROTO_NO_PASSWORD | OPT_PROTO_IM_IMAGE | OPT_PROTO_CHAT_TOPIC | OPT_PROTO_MAIL_CHECK;
 	prpl_info->protocol_options = hangouts_add_account_options(prpl_info->protocol_options);
-	
-	purple_signal_register(plugin, "hangouts-received-stateupdate",
-			purple_marshal_VOID__POINTER_POINTER, NULL, 2,
-			PURPLE_TYPE_CONNECTION,
-			purple_value_new(PURPLE_TYPE_OBJECT));
-			
-	purple_signal_register(plugin, "hangouts-gmail-notification",
-			purple_marshal_VOID__POINTER_POINTER_POINTER, NULL, 3,
-			PURPLE_TYPE_CONNECTION,
-			purple_value_new(PURPLE_TYPE_STRING),
-			purple_value_new(PURPLE_TYPE_OBJECT));
-
-	hangouts_register_events(plugin);
 
 	prpl_info->login = hangouts_login;
 	prpl_info->close = hangouts_close;

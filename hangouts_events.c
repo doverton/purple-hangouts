@@ -34,24 +34,6 @@
 // From hangouts_pblite
 gchar *pblite_dump_json(ProtobufCMessage *message);
 
-//purple_signal_emit(purple_connection_get_protocol(ha->pc), "hangouts-received-stateupdate", ha->pc, batch_update.state_update[j]);
-
-void
-hangouts_register_events(gpointer plugin)
-{
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_typing_notification), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_event_notification), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_presence_notification), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_watermark_notification), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_state_update), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_view_modification), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_delete_notification), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_block_notification), NULL);
-	purple_signal_connect(plugin, "hangouts-received-stateupdate", plugin, PURPLE_CALLBACK(hangouts_received_other_notification), NULL);
-	
-	purple_signal_connect(plugin, "hangouts-gmail-notification", plugin, PURPLE_CALLBACK(hangouts_received_gmail_notification), NULL);
-}
-
 /*
 struct  _StateUpdate
 {
@@ -89,6 +71,23 @@ hangouts_received_state_update(PurpleConnection *pc, StateUpdate *state_update)
 		purple_account_set_int(ha->account, "last_event_timestamp_high", current_server_time >> 32);
 		purple_account_set_int(ha->account, "last_event_timestamp_low", current_server_time & 0xFFFFFFFF);
 	}
+
+	if (state_update->typing_notification)
+		hangouts_received_typing_notification(pc, state_update);
+	if (state_update->event_notification)
+		hangouts_received_event_notification(pc, state_update);
+	if (state_update->presence_notification)
+		hangouts_received_presence_notification(pc, state_update);
+	if (state_update->watermark_notification)
+		hangouts_received_watermark_notification(pc, state_update);
+	if (state_update->view_modification)
+		hangouts_received_view_modification(pc, state_update);
+	if (state_update->delete_notification)
+		hangouts_received_delete_notification(pc, state_update);
+	if (state_update->block_notification)
+		hangouts_received_block_notification(pc, state_update);
+
+	hangouts_received_other_notification(pc, state_update);
 }
 
 static void
@@ -121,10 +120,6 @@ hangouts_received_view_modification(PurpleConnection *pc, StateUpdate *state_upd
 	ConversationViewModification *view_modification = state_update->view_modification;
 	const gchar *conv_id;
 	
-	if (view_modification == NULL) {
-		return;
-	}
-	
 	if (view_modification->new_view == CONVERSATION_VIEW__CONVERSATION_VIEW_ARCHIVED) {
 		ha = purple_connection_get_protocol_data(pc);
 		conv_id = view_modification->conversation_id->id;
@@ -140,10 +135,6 @@ hangouts_received_delete_notification(PurpleConnection *pc, StateUpdate *state_u
 	DeleteActionNotification *delete_notification = state_update->delete_notification;
 	const gchar *conv_id;
 	
-	if (delete_notification == NULL) {
-		return;
-	}
-	
 	ha = purple_connection_get_protocol_data(pc);
 	conv_id = delete_notification->conversation_id->id;
 
@@ -156,10 +147,6 @@ hangouts_received_block_notification(PurpleConnection *pc, StateUpdate *state_up
 	HangoutsAccount *ha;
 	BlockNotification *block_notification = state_update->block_notification;
 	guint i;
-	
-	if (block_notification == NULL) {
-		return;
-	}
 	
 	ha = purple_connection_get_protocol_data(pc);
 	
@@ -343,10 +330,6 @@ hangouts_received_watermark_notification(PurpleConnection *pc, StateUpdate *stat
 	HangoutsAccount *ha;
 	WatermarkNotification *watermark_notification = state_update->watermark_notification;
 	
-	if (watermark_notification == NULL) {
-		return;
-	}
-	
 	ha = purple_connection_get_protocol_data(pc);
 	
 	if (FALSE && g_strcmp0(watermark_notification->sender_id->gaia_id, ha->self_gaia_id)) {
@@ -496,10 +479,6 @@ hangouts_received_presence_notification(PurpleConnection *pc, StateUpdate *state
 	PresenceNotification *presence_notification = state_update->presence_notification;
 	guint i;
 	
-	if (presence_notification == NULL) {
-		return;
-	}
-	
 	ha = purple_connection_get_protocol_data(pc);
 	
 	for (i = 0; i < presence_notification->n_presence; i++) {
@@ -574,10 +553,6 @@ hangouts_received_event_notification(PurpleConnection *pc, StateUpdate *state_up
 	Conversation *conversation = state_update->conversation;
 	Event *event;
 	gint64 current_server_time = state_update->state_update_header->current_server_time;
-	
-	if (event_notification == NULL) {
-		return;
-	}
 	
 	ha = purple_connection_get_protocol_data(pc);
 	
@@ -903,10 +878,6 @@ hangouts_received_typing_notification(PurpleConnection *pc, StateUpdate *state_u
 	const gchar *gaia_id;
 	const gchar *conv_id;
 	PurpleIMTypingState typing_state;
-	
-	if (typing_notification == NULL) {
-		return;
-	}
 	
 	ha = purple_connection_get_protocol_data(pc);
 	

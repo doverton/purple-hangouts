@@ -21,6 +21,7 @@
 #include "hangouts.pb-c.h"
 #include "hangouts_connection.h"
 #include "hangouts_events.h"
+#include "hangouts_json.h"
 
 #include <string.h>
 #include <glib.h>
@@ -993,7 +994,7 @@ hangouts_got_buddy_list(PurpleHttpConnection *http_conn, PurpleHttpResponse *res
 		gchar *alias;
 		gchar *photo;
 		PurpleBuddy *buddy;
-		gchar *reachableAppType = hangouts_json_path_query_string(node, "$.inAppReachability[*].appType", NULL);
+		gchar *reachableAppType = hangouts_json_person_extract_app_type(node);
 		
 		if (g_strcmp0(reachableAppType, "BABEL")) {
 			//Not a hangouts user
@@ -1003,8 +1004,8 @@ hangouts_got_buddy_list(PurpleHttpConnection *http_conn, PurpleHttpResponse *res
 		g_free(reachableAppType);
 		
 		name = json_object_get_string_member(person, "personId");
-		alias = hangouts_json_path_query_string(node, "$.name[*].displayName", NULL);
-		photo = hangouts_json_path_query_string(node, "$.photo[*].url", NULL);
+		alias = hangouts_json_person_extract_display_name(node);
+		photo = hangouts_json_person_extract_photo(node);
 		buddy = purple_blist_find_buddy(ha->account, name);
 		
 		if (buddy == NULL) {
@@ -1336,7 +1337,9 @@ hangouts_conversation_send_image_part2_cb(PurpleHttpConnection *connection, Purp
 	purple_debug_info("hangouts", "image_part2_cb %s\n", response_raw);
 	node = json_decode(response_raw, response_len);
 	
-	photoid = hangouts_json_path_query_string(node, "$..photoid", NULL);
+	abort();
+	//photoid = hangouts_json_path_query_string(node, "$..photoid", NULL);
+
 	conv_id = g_dataset_get_data(connection, "conv_id");
 	
 	send_chat_message_request__init(&request);
@@ -1389,8 +1392,9 @@ hangouts_conversation_send_image_part1_cb(PurpleHttpConnection *connection, Purp
 	response_raw = purple_http_response_get_data(response, &response_len);
 	purple_debug_info("hangouts", "image_part1_cb %s\n", response_raw);
 	node = json_decode(response_raw, response_len);
-	
-	upload_url = hangouts_json_path_query_string(node, "$..putInfo.url", NULL);
+
+	abort();
+	//upload_url = hangouts_json_path_query_string(node, "$..putInfo.url", NULL);
 	
 	request = purple_http_request_new(upload_url);
 	purple_http_request_set_cookie_jar(request, ha->cookie_jar);

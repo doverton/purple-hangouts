@@ -142,6 +142,7 @@ json_decode_object(const gchar *data, gssize len)
 	return ret;
 }
 
+#if JSON_CHECK_VERSION(0, 14, 0)
 
 JsonNode *
 hangouts_json_path_query(JsonNode *root, const gchar *expr, GError **error)
@@ -209,6 +210,137 @@ hangouts_json_path_query_int(JsonNode *root, const gchar *expr, GError **error)
 	json_node_free(rslt);
 	return ret;
 }
+
+#endif /* JSON_CHECK_VERSION(0, 14, 0) */
+
+gchar *
+hangouts_json_extract_sid(JsonNode *node)
+{
+	gchar *sid = NULL;
+#if JSON_CHECK_VERSION(0, 14, 0)
+	sid = hangouts_json_path_query_string(node, "$[0][1][1]", NULL);
+#else
+	if (JSON_NODE_HOLDS_ARRAY(node)) {
+		JsonArray *outer = json_node_get_array(node);
+		JsonArray *inner1 = json_array_get_array_element(outer, 0);
+		JsonArray *inner2 = json_array_get_array_element(inner1, 1);
+		sid = g_strdup(json_array_get_string_element(inner2, 1));
+	}
+#endif
+	return sid;
+}
+
+gchar *
+hangouts_json_extract_gsid(JsonNode *node)
+{
+	gchar *gsid = NULL;
+#if JSON_CHECK_VERSION(0, 14, 0)
+	gsid = hangouts_json_path_query_string(node, "$[1][1][0].gsid", NULL);
+#else
+	if (JSON_NODE_HOLDS_ARRAY(node)) {
+		JsonArray *outer = json_node_get_array(node);
+		JsonArray *inner1 = json_array_get_array_element(outer, 1);
+		JsonArray *inner2 = json_array_get_array_element(inner1, 1);
+		JsonObject *object = json_array_get_object_element(inner2, 0);
+		gsid = g_strdup(json_object_get_string_member(object, "gsid"));
+	}
+#endif
+	return gsid;
+}
+
+gchar *
+hangouts_json_person_extract_display_name(JsonNode *node)
+{
+	gchar *alias = NULL;
+#if JSON_CHECK_VERSION(0, 14, 0)
+	alias = hangouts_json_path_query_string(node, "$.name[*].displayName", NULL);
+#else
+	if (JSON_NODE_HOLDS_OBJECT(node)) {
+		JsonObject *object = json_node_get_object(node);
+		JsonArray *names = json_object_get_array_member(object, "name");
+
+		if (names) {
+			int len = json_array_get_length(names);
+			int i;
+
+			for (i = 0; i < len; i++) {
+				JsonObject *name = json_array_get_object_element(names, i);
+				if (name) {
+					const gchar *d = json_object_get_string_member(name, "displayName");
+					if (d) {
+						alias = g_strdup(d);
+						break;
+					}
+				}
+			}
+		}
+	}
+#endif
+	return alias;
+}
+
+gchar *
+hangouts_json_person_extract_photo(JsonNode *node)
+{
+	gchar *photo = NULL;
+#if JSON_CHECK_VERSION(0, 14, 0)
+	photo = hangouts_json_path_query_string(node, "$.photo[*].url", NULL);
+#else
+	if (JSON_NODE_HOLDS_OBJECT(node)) {
+		JsonObject *object = json_node_get_object(node);
+		JsonArray *photos = json_object_get_array_member(object, "photo");
+
+		if (photos) {
+			int len = json_array_get_length(photos);
+			int i;
+
+			for (i = 0; i < len; i++) {
+				JsonObject *url = json_array_get_object_element(photos, i);
+				if (url) {
+					const gchar *u = json_object_get_string_member(url, "url");
+					if (u) {
+						photo = g_strdup(u);
+						break;
+					}
+				}
+			}
+		}
+	}
+#endif
+	return photo;
+}
+
+gchar *
+hangouts_json_person_extract_app_type(JsonNode *node)
+{
+	gchar *appType = NULL;
+#if JSON_CHECK_VERSION(0, 14, 0)
+	appType = hangouts_json_path_query_string(node, "$.inAppReachability[*].appType", NULL);
+#else
+	if (JSON_NODE_HOLDS_OBJECT(node)) {
+		JsonObject *object = json_node_get_object(node);
+		JsonArray *reaches = json_object_get_array_member(object, "inAppReachability");
+
+		if (reaches) {
+			int len = json_array_get_length(reaches);
+			int i;
+
+			for (i = 0; i < len; i++) {
+				JsonObject *reach = json_array_get_object_element(reaches, i);
+				if (reach) {
+					const gchar *a = json_object_get_string_member(reach, "appType");
+					if (a) {
+						appType = g_strdup(a);
+						break;
+					}
+				}
+			}
+		}
+	}
+#endif
+	return appType;
+}
+
 
 gchar *
 hangouts_json_tidy_blank_arrays(const gchar *json)

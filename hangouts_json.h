@@ -84,13 +84,19 @@ JsonNode *json_decode(const gchar *data, gssize len);
 JsonArray *json_decode_array(const gchar *data, gssize len);
 JsonObject *json_decode_object(const gchar *data, gssize len);
 
-
+#if JSON_CHECK_VERSION(0, 14, 0)
 JsonNode *hangouts_json_path_query(JsonNode *root, const gchar *expr, GError **error);
 
 gchar *hangouts_json_path_query_string(JsonNode *root, const gchar *expr, GError **error);
 
 gint64 hangouts_json_path_query_int(JsonNode *root, const gchar *expr, GError **error);
+#endif /* JSON_CHECK_VERSION(0, 14, 0) */
 
+gchar *hangouts_json_extract_sid(JsonNode *node);
+gchar *hangouts_json_extract_gsid(JsonNode *node);
+gchar *hangouts_json_person_extract_display_name(JsonNode *node);
+gchar *hangouts_json_person_extract_photo(JsonNode *node);
+gchar *hangouts_json_person_extract_app_type(JsonNode *node);
 
 /**
  * Tidies invalid JSON from Google into slightly-more-valid JSON, 
